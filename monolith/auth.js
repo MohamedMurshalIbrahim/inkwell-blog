@@ -9,8 +9,11 @@ const sign = (v) =>
         .update(String(v))
         .digest('hex');
 
+const adminUser = process.env.ADMIN_USER || 'admin';
+const adminPass = process.env.ADMIN_PASS || 'admin123';
+
 exports.check = (u, p) =>
-    Boolean(process.env.ADMIN_USER && process.env.ADMIN_PASS && u === process.env.ADMIN_USER && p === process.env.ADMIN_PASS);
+    Boolean(u && p && u === adminUser && p === adminPass);
 
 exports.token = () => { 
     const e = String(Date.now() + 8 * 3600e3);
