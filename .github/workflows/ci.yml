@@ -1,0 +1,19 @@
+name: CI
+on:
+  pull_request:
+    branches: [main, develop]
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [monolith]          # you'll add the microservices here later
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Run tests
+        run: cd ${{ matrix.app }} && npm test
+      - name: Build Docker image
+        run: docker build -t blog-ci ${{ matrix.app }}
