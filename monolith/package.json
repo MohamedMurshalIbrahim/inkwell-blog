@@ -1,0 +1,14 @@
+{
+  "name": "inkwell-monolith",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.5"
+  }
+}

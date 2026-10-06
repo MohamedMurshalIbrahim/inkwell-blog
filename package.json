@@ -1,0 +1,13 @@
+{
+  "name": "inkwell-blog",
+  "version": "1.0.0",
+  "main": "monolith/server.js",
+  "scripts": {
+    "start": "node monolith/server.js",
+    "test": "node --test monolith/test/*.test.js"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.5",
+    "framer-motion": "^14.0.0"
+  }
+}
