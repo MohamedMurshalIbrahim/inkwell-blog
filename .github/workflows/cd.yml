@@ -54,7 +54,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Render deploy hooks
+        env:
+          HOOK_MONOLITH: ${{ secrets.RENDER_HOOK_MONOLITH }}
+          HOOK_ARTICLES: ${{ secrets.RENDER_HOOK_ARTICLES }}
+          HOOK_WEB: ${{ secrets.RENDER_HOOK_WEB }}
         run: |
-          curl -fsS -X POST "${{ secrets.RENDER_HOOK_MONOLITH }}"
-          curl -fsS -X POST "${{ secrets.RENDER_HOOK_ARTICLES }}"
-          curl -fsS -X POST "${{ secrets.RENDER_HOOK_WEB }}"
+          if [ -n "$HOOK_MONOLITH" ]; then curl -fsS -X POST "$HOOK_MONOLITH"; fi
+          if [ -n "$HOOK_ARTICLES" ]; then curl -fsS -X POST "$HOOK_ARTICLES"; fi
+          if [ -n "$HOOK_WEB" ]; then curl -fsS -X POST "$HOOK_WEB"; fi
