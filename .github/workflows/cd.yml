@@ -8,6 +8,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         app: [monolith, services/articles, services/web]
     steps:
@@ -16,6 +17,34 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Install dependencies
+        run: cd ${{ matrix.app }} && npm install
+
+      - name: Install Articles dependencies for Web test
+        if: ${{ matrix.app == 'services/web' }}
+        working-directory: services/articles
+        run: npm install
+
+      - name: Start Articles server
+        if: ${{ matrix.app == 'services/web' }}
+        working-directory: services/articles
+        run: npm start &
+
+      - name: Wait for Articles
+        if: ${{ matrix.app == 'services/web' }}
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4000/health; then
+              echo "Articles is ready"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Set ARTICLES_URL
+        if: ${{ matrix.app == 'services/web' }}
+        run: echo "ARTICLES_URL=http://127.0.0.1:4000" >> "$GITHUB_ENV"
 
       - name: Run tests
         run: cd ${{ matrix.app }} && npm test

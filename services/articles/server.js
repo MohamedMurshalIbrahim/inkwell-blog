@@ -25,5 +25,5 @@ const createServer = () => http.createServer(async (req, res) => {
     send(res, 404, { error: 'Not found' });
   } catch { send(res, 500, { error: 'Server error' }); }
 });
-if (require.main === module) createServer().listen(process.env.PORT || 8080, () => console.log('articles up'));
+if (require.main === module) createServer().listen(process.env.PORT || 4000, () => console.log('articles up on :' + (process.env.PORT || 4000)));
 module.exports = { createServer };

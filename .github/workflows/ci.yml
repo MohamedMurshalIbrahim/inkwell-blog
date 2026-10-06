@@ -8,14 +8,85 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [monolith]          # you'll add the microservices here later
+        app: [monolith, services/articles, services/web]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - name: Install dependencies
         run: cd ${{ matrix.app }} && npm install
+
+      - name: Start Articles server
+        if: ${{ matrix.app == 'services/web' }}
+        working-directory: services/articles
+        run: |
+          npm install
+          npm start &
+
+      - name: Wait for Articles
+        if: ${{ matrix.app == 'services/web' }}
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4000/health; then
+              echo "Articles is ready"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Set ARTICLES_URL
+        if: ${{ matrix.app == 'services/web' }}
+        run: echo "ARTICLES_URL=http://127.0.0.1:4000" >> "$GITHUB_ENV"
+
       - name: Run tests
         run: cd ${{ matrix.app }} && npm test
+
       - name: Build Docker image
         run: docker build -t blog-ci ${{ matrix.app }}
+
+  integration-test:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start services with Docker Compose
+        run: docker compose up -d --build
+
+      - name: Wait for services to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8080/health && curl -fsS http://127.0.0.1:4000/health; then
+              echo "Services are ready"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Verify blog endpoint
+        run: curl -fsS http://127.0.0.1:8080/blog
+
+      - name: Perform admin login and integration flow
+        run: |
+          COOKIE_FILE=$(mktemp)
+          curl -fsS -c "$COOKIE_FILE" -X POST http://127.0.0.1:8080/admin/login \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "username=admin&password=admin123"
+
+          CREATE_RES=$(curl -fsS -b "$COOKIE_FILE" -X POST http://127.0.0.1:8080/api/articles \
+            -H "Content-Type: application/json" \
+            -d '{"title":"Docker Integration Article","content":"Tested via Docker Compose in CI"}')
+
+          echo "Create response: $CREATE_RES"
+
+          ARTICLES=$(curl -fsS http://127.0.0.1:8080/api/articles)
+          echo "Articles list: $ARTICLES"
+
+          if [[ "$ARTICLES" != *"Docker Integration Article"* ]]; then
+            echo "Article creation verification failed!"
+            exit 1
+          fi
+
+      - name: Tear down Docker Compose
+        if: always()
+        run: docker compose down

@@ -1,0 +1,23 @@
+services:
+  articles:
+    build:
+      context: ./services/articles
+      dockerfile: Dockerfile
+    ports:
+      - "4000:8080"
+    environment:
+      - PORT=8080
+      - ARTICLES_API_KEY=dev-key
+
+  web:
+    build:
+      context: ./services/web
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - ARTICLES_URL=http://articles:8080
+      - ARTICLES_API_KEY=dev-key
+    depends_on:
+      - articles
