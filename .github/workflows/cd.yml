@@ -2,34 +2,59 @@ name: CD - Deploy to Render
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]        # runs only when a PR is merged into main
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [monolith, services/articles, services/web]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install dependencies
-        working-directory: monolith
+        run: cd ${{ matrix.app }} && npm install
+
+      - name: Install Articles dependencies for Web test
+        if: ${{ matrix.app == 'services/web' }}
+        working-directory: services/articles
         run: npm install
 
+      - name: Start Articles server
+        if: ${{ matrix.app == 'services/web' }}
+        working-directory: services/articles
+        run: npm start &
+
+      - name: Wait for Articles
+        if: ${{ matrix.app == 'services/web' }}
+        run: |
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4000/health; then
+              echo "Articles is ready"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Set ARTICLES_URL
+        if: ${{ matrix.app == 'services/web' }}
+        run: echo "ARTICLES_URL=http://127.0.0.1:4000" >> "$GITHUB_ENV"
+
       - name: Run tests
-        working-directory: monolith
-        run: npm test
+        run: cd ${{ matrix.app }} && npm test
 
   deploy:
-    needs: test
+    needs: test             # deploy only if every test passed
     runs-on: ubuntu-latest
-
     steps:
-      - name: Trigger Render deploy hook
-        run: curl -fsS -X POST "${{ secrets.RENDER_HOOK_MONOLITH }}"
+      - name: Trigger Render deploy hooks
+        run: |
+          curl -fsS -X POST "${{ secrets.RENDER_HOOK_MONOLITH }}"
+          curl -fsS -X POST "${{ secrets.RENDER_HOOK_ARTICLES }}"
+          curl -fsS -X POST "${{ secrets.RENDER_HOOK_WEB }}"
