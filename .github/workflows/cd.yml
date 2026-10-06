@@ -2,11 +2,12 @@ name: CD - Deploy to Render
 
 on:
   push:
-    branches: [main]        # runs only when a PR is merged into main
+    branches: [main]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -15,14 +16,14 @@ jobs:
           node-version: 20
 
       - name: Run tests
-      - working-directory: monolith
+        working-directory: monolith
         run: npm test
 
   deploy:
-    needs: test             # deploy only if every test passed
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger Render deploy hooks
+      - name: Trigger Render deploy hook
         run: |
           curl -fsS -X POST "${{ secrets.RENDER_HOOK_MONOLITH }}"
