@@ -7,9 +7,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        app: [monolith, services/articles, services/web]
     steps:
       - uses: actions/checkout@v4
 
@@ -18,14 +15,14 @@ jobs:
           node-version: 20
 
       - name: Run tests
-        run: cd ${{ matrix.app }} && npm test
+      - working-directory: monolith
+        run: npm test
 
   deploy:
     needs: test             # deploy only if every test passed
     runs-on: ubuntu-latest
+
     steps:
       - name: Trigger Render deploy hooks
         run: |
           curl -fsS -X POST "${{ secrets.RENDER_HOOK_MONOLITH }}"
-          curl -fsS -X POST "${{ secrets.RENDER_HOOK_ARTICLES }}"
-          curl -fsS -X POST "${{ secrets.RENDER_HOOK_WEB }}"
