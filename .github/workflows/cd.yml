@@ -18,6 +18,10 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install dependencies
+        working-directory: monolith
+        run: npm install
+
       - name: Run tests
         working-directory: monolith
         run: npm test
